@@ -6,10 +6,13 @@
 // The op loop follows MacNativeGames nvn_mtl.m (MIT, Copyright (c) 2026 jhaizhou) and the pass handling LAS Recomp
 // (MIT, Copyright (c) 2026 Peiikai); vk_exec.c names the sources.
 #pragma once
+
 #include <stdint.h>
 
 #include "nvn_api.h"
 #include "vk.h"
+
+void vk_exec_aspect_present(const tex_t *t);   // learn the final canvas used by ultrawide HUD correction
 
 // Dynamic state the next draw must record (VkExec.dirty). vk_exec_record sets them all at the start of each command
 // buffer; the state ops set theirs; vk_exec_draw.c clears what it recorded.

@@ -16,12 +16,14 @@
 // sampler descriptor lookups and the dispatch flow follow LAS Recomp runtime/nvn/vulkan/exec.c:1851-1908, 2300-2516
 // @ da35b83a (MIT, Copyright (c) 2026 Peiikai). The support buffer layout is Ryujinx's SupportBuffer.cs (MIT).
 #include <stdarg.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "cfg.h"
+#include "aspect.h"
 #include "host.h"
 #include "nvn_api.h"
 #include "nvn_hmap.h"
@@ -96,6 +98,7 @@ static struct {
     VkPipeline pipe[2];                  // bound per bind point: 0 graphics, 1 compute
     VkPipeState st;                      // the state vk_pipeline_set_dynamic last recorded
     int st_valid;
+    float ui_scale;                     // HUD viewport/scissor transform of the last draw
     VkBuffer vb[17];                     // vertex buffers last bound
     VkDeviceSize vo[17], vsz[17], vstr[17];
     int vcls[17];                        // their pool class and pool record, for the census
@@ -1666,11 +1669,88 @@ static void bind_pipeline(VkExec *ex, VkPipelineBindPoint bp, VkPipeline p) {
     if (!k) B.st_valid = 0;
 }
 
-static void record_fixed(VkExec *ex) {
+// Ultrawide HUD identification and canvas learning follow MacNativeGames nvn_mtl.m mfx_ui_vs, uw_ui_vs and
+// canvas_learn @ 933b6a0d1438de160208a0a13eb5e8d7a2cb8094 (MIT, Copyright (c) 2026 jhaizhou and MacNativeGames
+// contributors). Identify only known UI shaders on the final floating-point canvas: shrinking arbitrary quads also
+// shrinks the inventory's 3D scene and full-screen post effects. Shader ids are SHA-256(control, code), independent
+// of this port's translator-specific cache keys. Cache the classification by the NVN program's initialization serial.
+static struct { uint64_t serial; int ui; } ui_programs[512];   // bounded: old program serials need not live forever
+static uint64_t aspect_swap[4], aspect_swap_size;
+static unsigned aspect_swap_next;
+static uint64_t aspect_canvas, aspect_candidate;
+
+void vk_exec_aspect_present(const tex_t *t) {
+    if (!t) return;
+    __atomic_store_n(&aspect_swap_size, (uint64_t)t->d.height << 32 | t->d.width, __ATOMIC_RELAXED);
+    for (int i = 0; i < 4; i++)
+        if (__atomic_load_n(&aspect_swap[i], __ATOMIC_RELAXED) == t->serial) return;
+    unsigned i = aspect_swap_next++ % 4;   // called on the replay thread, before handing the image to the presenter
+    __atomic_store_n(&aspect_swap[i], t->serial, __ATOMIC_RELAXED);
+}
+
+static int aspect_ui_program(const prog_t *p) {
+    typeof(ui_programs[0]) *cached = &ui_programs[p->serial * 0x9E3779B97F4A7C15ull >> 55];
+    if (p->serial && cached->serial == p->serial) return cached->ui;
+    const uint8_t *ctl, *code;
+    uint32_t len;
+    int ui = 0;
+    if (find_stage(p, NVN_STAGE_VS, &ctl, &code, &len) && len && len <= 16u * 1024 * 1024) {
+        uint32_t cn;
+        memcpy(&cn, ctl + 0x20, 4);
+        if (cn < 0x7cc || cn >= 0x880) cn = 0x880;
+        uint8_t *bytes = malloc((size_t)cn + len), hash[32];
+        if (!bytes) rt_fatal("aspect: out of memory hashing a UI shader");
+        memcpy(bytes, ctl, cn);
+        memcpy(bytes + cn, code, len);
+        rt_sha256(bytes, (size_t)cn + len, hash);
+        free(bytes);
+        uint32_t prefix = (uint32_t)hash[0] << 24 | (uint32_t)hash[1] << 16 | (uint32_t)hash[2] << 8 | hash[3];
+        static const uint32_t ids[] = {
+            0x7f2113e2, 0xe9fd7b43, 0xa662e313, 0x16684efc, 0x3e11cee5, 0x48c18ae6, 0x35cbc686,
+            0x4872bec9, 0x9f47ed90, 0x1a40e5f5, 0x2117f58b, 0x8d4e36d0, 0x1469983f,
+        };
+        for (size_t i = 0; i < sizeof ids / sizeof *ids; i++) ui |= prefix == ids[i];
+    }
+    if (p->serial) cached->serial = p->serial, cached->ui = ui;
+    return ui;
+}
+
+static float aspect_ui_scale(VkExec *ex, int count) {
+    float a = aspect_ratio();
+    if (a <= ASPECT_GAME || !ex->rt.n || !ex->rt.color[0]) return 1;
+    const tex_t *t = ex->rt.color[0];
+    uint64_t sz = __atomic_load_n(&aspect_swap_size, __ATOMIC_RELAXED);
+    int swap = 0;
+    for (int i = 0; i < 4; i++) swap |= __atomic_load_n(&aspect_swap[i], __ATOMIC_RELAXED) == t->serial;
+    if (swap) aspect_canvas = aspect_candidate;
+    else if ((uint32_t)sz && (sz >> 32) && ex->color[0].width >= 640 && ex->color[0].height && !ex->depth.image &&
+             ex->color[0].level == 0 &&
+             (ex->pass_color[0] == VK_FORMAT_R16G16B16A16_SFLOAT || ex->pass_color[0] == VK_FORMAT_B10G11R11_UFLOAT_PACK32 ||
+              ex->pass_color[0] == VK_FORMAT_R32G32B32A32_SFLOAT) &&
+             fabs((double)ex->color[0].width * (sz >> 32) / ((double)ex->color[0].height * (uint32_t)sz) - 1) < 0.01)
+        aspect_candidate = t->serial;
+    if (t->serial == aspect_canvas && count == 6 && aspect_ui_program(ex->prog)) {
+        static int logged;
+        if (!logged) {
+            logged = 1;
+            rt_log("aspect: HUD correction active on canvas %llu (%ux%u)", (unsigned long long)t->serial,
+                   ex->pass_w, ex->pass_h);
+        }
+        return a / ASPECT_GAME;
+    }
+    return 1;
+}
+
+static void record_fixed(VkExec *ex, float ui_scale) {
     VkCommandBuffer cb = ex->cb;
+    if (B.ui_scale != ui_scale) {
+        ex->dirty |= VK_EXEC_DIRTY_VIEWPORT | VK_EXEC_DIRTY_SCISSOR;
+        B.ui_scale = ui_scale;
+    }
     if (ex->dirty & VK_EXEC_DIRTY_VIEWPORT) {
         float x = 0, y = 0, w = (float)ex->pass_w, h = (float)ex->pass_h;
         if (ex->has_vp) x = ex->vp[0][0], y = ex->vp[0][1], w = ex->vp[0][2], h = ex->vp[0][3];
+        if (ui_scale != 1) aspect_ui_span(ex->pass_w * 0.5f, ui_scale, &x, &w);
         if (w < 1) w = 1;
         if (h < 1) h = 1;
         VkViewport v = {x, y + h, w, -h, ex->depth_range[0], ex->depth_range[1]};   // the y flip: negative height
@@ -1679,6 +1759,13 @@ static void record_fixed(VkExec *ex) {
     }
     if (ex->dirty & VK_EXEC_DIRTY_SCISSOR) {
         VkRect2D r = vk_exec_scissor(ex);
+        if (ui_scale != 1) {
+            float x = (float)r.offset.x, w = (float)r.extent.width;
+            aspect_ui_span(ex->pass_w * 0.5f, ui_scale, &x, &w);
+            int end = (int)ceilf(x + w);
+            r.offset.x = (int)floorf(x);
+            r.extent.width = (uint32_t)(end - r.offset.x);
+        }
         vkCmdSetScissorWithCount(cb, 1, &r);
         ex->recorded++;
     }
@@ -1932,7 +2019,7 @@ static int prepare_draw(VkExec *ex, int prim, int32_t count, int restart) {
         ex->recorded++;
         B.st = s, B.st_valid = 1;
     }
-    record_fixed(ex);
+    record_fixed(ex, aspect_ui_scale(ex, count));
     repeat_stats(ex, info);
     bind_resources(ex, info);
     if (fbl & ex->fb_dirty) feedback_barrier(ex);

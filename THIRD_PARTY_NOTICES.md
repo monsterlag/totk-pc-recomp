@@ -35,6 +35,12 @@ Code copied or adapted from another project is listed here with its source, the 
 | AMD Display Library (ADL) declarations: `AdapterInfo`, `ADLSingleSensorData`, `ADLPMLogDataOutput`, the `ADL_PMLOG_*` sensor numbers and the `ADL2_*` function signatures | https://github.com/GPUOpen-LibrariesAndSDKs/display-library @ `84c881cb2136f04287eb3af12de00a9e2867aa9e` (`include/adl_structures.h`, `include/adl_defines.h`, `include/adl_sdk.h`), Copyright (c) 2016 - 2022 Advanced Micro Devices, Inc. | MIT | `runtime/perfmon.c` |
 | Zstandard 1.5.7 (MSYS2 `mingw-w64-ucrt-x86_64-zstd`), static link | https://github.com/facebook/zstd, Copyright (c) Meta Platforms, Inc. and affiliates | BSD-3-Clause | `runtime/resolution.c` (the HeapDef table), `runtime/ov_zstd.c` (the game's zstd frames decoded on the host) |
 
+## Ultrawide
+
+| Component | Source | License | Where used |
+|---|---|---|---|
+| Ultrawide camera/viewport patch sites, UI shader identifiers and canvas-learning approach | https://github.com/ly05010419/MacNativeGames @ `933b6a0d1438de160208a0a13eb5e8d7a2cb8094` (`games/totk/runtime/aspect_patch.h`, `game_patches_v143.c`, `games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m`), Copyright (c) 2026 MacNativeGames contributors and jhaizhou | MIT | `recomp/patches-v143.txt`, `runtime/aspect.c`, `runtime/vk_exec_draw.c` |
+
 ## Compiler runtime in a source build
 
 A build with the MSYS2 UCRT64 toolchain of `docs/building.md` links these into `totk.exe`. The installer release builds with llvm-mingw instead (its row below).

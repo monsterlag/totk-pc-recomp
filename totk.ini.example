@@ -99,6 +99,10 @@
 # here. Changes while the game runs take effect at once.
 # window_size = 1920x1080
 # fullscreen = 0
+# Aspect ratio: 16:9 (original, default) or window (experimental ultrawide, game 1.4.3).
+# Window keeps the vertical field of view and shows more world at the sides. The HUD stays centred at 16:9;
+# some world-space markers and UI effects can be misplaced. Follows the window on resize. Read live.
+# aspect = 16:9
 # Performance overlay in the top right corner: off, fps, or full (frame rate, mean and longest frame time). F10
 # cycles the modes in game.
 # perf_overlay = off

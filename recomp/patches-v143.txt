@@ -10,6 +10,7 @@ set cloth    TOTK_CLOTH_REALTIME 1
 set bounce   TOTK_HIGHFPS_FIX    1
 set output   TOTK_PATCH_OUTPUT   0
 set scene    TOTK_PATCH_SCENE    0
+set aspect   TOTK_PATCH_ASPECT   0
 
 # 60 fps: the adaptive present-interval controller (main+0x2db174, 1.2.1 0x8f26c8) gets the minimum interval 1.
 site fps60 main 2db204 6b08015f 7100055f   # clamp: cmp w10, #1 (was cmp w10, w8 = minimum)
@@ -60,6 +61,15 @@ site scene main 585e48 1e220160 @page:x3    # scvtf s0, w11 -> adrp x3, page
 site scene main 585e50 bd0cc660 2d420460    # str s0, [x19, #0xcc4] -> ldp s0, s1, [x3, #16]
 site scene main 585e54 1e220140 bd0cc660    # scvtf s0, w10 -> str s0, [x19, #0xcc4]
 site scene main 585e60 bd0cca60 bd0cca61    # str s0, [x19, #0xcc8] -> str s1, [x19, #0xcc8]
+
+# Ultrawide: MacNativeGames aspect_patch.h / game_patches_v143.c @ 933b6a0 (MIT, Copyright (c) 2026
+# MacNativeGames contributors), camera update/setup then the two viewport aspect producers. Page +56 holds the
+# window's aspect (runtime/aspect.c). The switch keeps the original instruction at 16:9. While enabled, preserve x10
+# on the guest stack, load the ratio into s0, and restore x10; flags and every other register are unchanged.
+site aspect main 628c74  bd414260 f81f0fea @page:x10 bd403940 f84107ea
+site aspect main b43460  bd406ac0 f81f0fea @page:x10 bd403940 f84107ea
+site aspect main 1ff04f4 1e211800 f81f0fea @page:x10 bd403940 f84107ea
+site aspect main 253fbb0 1e211800 f81f0fea @page:x10 bd403940 f84107ea
 
 # The game's zstd decoder (BSD zstd, statically linked into main) through the host's libzstd (runtime/ov_zstd.c):
 # every call of ZSTD_decompressMultiFrame (main+0x3a1f0: dctx, dst, capacity, src, size, dict, dict size, ddict) and of

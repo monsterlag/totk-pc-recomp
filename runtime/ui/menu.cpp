@@ -24,6 +24,7 @@
 
 extern "C" {
 #include "cfg.h"
+#include "aspect.h"
 #include "input.h"
 #include "input_map.h"
 #include "perfmon.h"
@@ -375,9 +376,9 @@ static void list_gpus(VkInstance inst) {
     g_gpu_n = (int)n;
 }
 
-// Window sizes: the common 16:9 sizes that fit the monitor, the 1920x1080 default and the current size.
+// Window sizes: common standard and ultrawide sizes that fit the monitor, the default and the current size.
 static const int kSizes[][2] = {{1280, 720}, {1366, 768}, {1600, 900}, {1920, 1080}, {2560, 1440}, {3200, 1800},
-                                {3840, 2160}};
+                                {3840, 2160}, {2560, 1080}, {3440, 1440}, {3840, 1600}, {5120, 1440}, {5120, 2160}};
 enum { MAX_SIZES = sizeof kSizes / sizeof *kSizes + 1 };
 
 static void row_window_size(void) {
@@ -409,10 +410,10 @@ static void row_window_size(void) {
     opt_choice_list("TOTK_WINDOW_SIZE", UI_MENU_WINDOW_SIZE, pv, pn, n, UI_MENU_WINDOW_SIZE_DESC);
 }
 
-// The game resolution (resolution.c): 16:9 sizes from the game's own 1920x1080 up, and the current value when it is
-// another size.
+// The game resolution (resolution.c), including native ultrawide targets. The current custom value is also shown.
 static void row_output_res(void) {
-    static const char *const vals[] = {"1920x1080", "2560x1440", "3200x1800", "3840x2160"};
+    static const char *const vals[] = {"1920x1080", "2560x1440", "3200x1800", "3840x2160", "2560x1080",
+                                       "3440x1440", "3840x1600", "5120x1440", "5120x2160"};
     enum { N = sizeof vals / sizeof *vals };
     char shown[N][32];
     const char *names[N];
@@ -523,6 +524,9 @@ static void tab_screen(float scale) {
     static const UiTextId perf[] = {UI_MENU_PERF_OFF, UI_MENU_PERF_FPS, UI_MENU_PERF_FULL};
     opt_choice("TOTK_PERF_OVERLAY", UI_MENU_PERF_OVERLAY, perf, 3, UI_MENU_PERF_OVERLAY_DESC);
     opt_group(UI_MENU_GRAPHICS);
+    static const UiTextId aspect[] = {UI_MENU_ASPECT_ORIGINAL, UI_MENU_ASPECT_WINDOW};
+    if (!aspect_supported()) opt_disable_next(UI_MENU_ASPECT_UNAVAILABLE);
+    opt_choice("TOTK_ASPECT", UI_MENU_ASPECT, aspect, 2, UI_MENU_ASPECT_DESC);
     row_output_res();
     row_render_scale();
     static const UiTextId up[] = {UI_MENU_UPSCALER_FSR, UI_MENU_UPSCALER_BILINEAR};

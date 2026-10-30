@@ -20,6 +20,7 @@ Report problems as issues, following [CONTRIBUTING.md](CONTRIBUTING.md).
 - 60 fps by default; up to 144 fps or the monitor's refresh rate (experimental)
 - Custom resolutions (1080p, 2k...), supersampling and AMD FSR 1 upscaling
 - In-game settings menu (F1) and performance overlay (F10)
+- Experimental ultrawide on game 1.4.3: wider camera view and a centred 16:9 HUD ([setup and limitations](docs/ultrawide.md))
 - Keyboard, mouse and gamepad with remapping, rumble and gyro
 - Shaders prepared at install instead of during play
 
@@ -27,7 +28,7 @@ Report problems as issues, following [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - Linux and the Steam Deck
 - Mods made for emulators: unpack a mod into a `mods` folder
-- Custom aspect ratios, including ultrawide
+- Additional aspect ratios and ultrawide UI fixes
 - VRR
 
 ## Installing

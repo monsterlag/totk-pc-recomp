@@ -341,6 +341,7 @@ void rt_boot(void) {
     rt_patches_init();
     frame_step_init();
     res_init();
+    aspect_init();
     cb_addr[0] = hostfn_register("<rtld loader_ready>", cb_loader_ready);
     cb_addr[1] = hostfn_register("<rtld module_inits>", cb_module_inits);
     cb_addr[2] = hostfn_register("<rtld module_finis>", cb_module_finis);

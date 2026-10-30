@@ -208,7 +208,10 @@ void res_init(void) {
     }
     uint8_t *page = rt_patch_page();
     double k = RT_V143 ? (double)R.ow / BASE_W : 1.0;   // 1.4.3's own scaling of the scene with the output width
-    int scene_on = R.scene_set || (!RT_V143 && (R.ow != BASE_W || R.oh != BASE_H));
+    // 1.4.3 scales both scene axes with output width. Its unpatched 5/6 scene therefore has the wrong height on a
+    // non-16:9 canvas; publish the explicit scene size for ultrawide even when render_scale is "game".
+    int scene_on = R.scene_set || R.ow * BASE_H != R.oh * BASE_W ||
+                   (!RT_V143 && (R.ow != BASE_W || R.oh != BASE_H));
     float sc[2] = {(float)(R.sw / k), (float)(R.sh / k)};
     uint64_t out = pack(R.ow, R.oh), none = 0;
     memcpy(page + 16, sc, sizeof sc);

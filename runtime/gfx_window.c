@@ -18,6 +18,7 @@
 #include <windows.h>
 
 #include "cfg.h"
+#include "aspect.h"
 #include "flight.h"
 #include "fs.h"
 #include "gfx.h"
@@ -778,6 +779,7 @@ static void present_image(VkImage src, VkImageLayout layout, VkFormat fmt, int w
     if (cx + cw > w) cw = w - cx;
     if (cy + ch > h) ch = h - cy;
     window_settings_live();
+    aspect_update(g_sc_ext.width, g_sc_ext.height);
     // The menu overlay: laid out before recording (its first frame starts the ImGui back end and uploads the font)
     const char *menu_shot = NULL;
     MenuTarget mt = {c->instance, c->phys, c->device, c->gfx_family, c->gfx_queue, g_sc_fmt, g_sc_ext.width,

@@ -50,6 +50,11 @@ static const char *const text_en[UI_TEXT_COUNT] = {
     // printf format of the overlay line in FPS mode: the frame rate
     [UI_PERF_LINE_FPS] = "%.0f fps",
     [UI_MENU_GRAPHICS] = "Picture",
+    [UI_MENU_ASPECT] = "Aspect ratio (experimental)",
+    [UI_MENU_ASPECT_DESC] = "Window widens the camera to match an ultrawide window and keeps the HUD centred at 16:9. "
+                            "Use a matching window size or fullscreen. Some world markers and UI effects may be misplaced.",
+    [UI_MENU_ASPECT_ORIGINAL] = "Original (16:9)", [UI_MENU_ASPECT_WINDOW] = "Window (ultrawide)",
+    [UI_MENU_ASPECT_UNAVAILABLE] = "Requires a build with the 1.4.3 aspect patches",
     [UI_MENU_OUTPUT_RES] = "Game resolution",
     [UI_MENU_OUTPUT_RES_DESC] = "The size the game draws its picture and interface in. Above 1920 x 1080 the game needs "
                                 "more video memory and GPU time.",
@@ -268,6 +273,11 @@ static const char *const text_ru[UI_TEXT_COUNT] = {
     [UI_MENU_PERF_OFF] = "Выкл.", [UI_MENU_PERF_FPS] = "FPS", [UI_MENU_PERF_FULL] = "Полный",
     [UI_PERF_LINE_FPS] = "%.0f к/с",
     [UI_MENU_GRAPHICS] = "Изображение",
+    [UI_MENU_ASPECT] = "Соотношение сторон (экспериментально)",
+    [UI_MENU_ASPECT_DESC] = "Окно расширяет обзор камеры под сверхширокое окно, сохраняя интерфейс 16:9 по центру. "
+                            "Выберите соответствующий размер окна или полный экран. Некоторые метки и эффекты могут смещаться.",
+    [UI_MENU_ASPECT_ORIGINAL] = "Исходное (16:9)", [UI_MENU_ASPECT_WINDOW] = "По окну (сверхширокое)",
+    [UI_MENU_ASPECT_UNAVAILABLE] = "Нужна сборка с исправлениями соотношения сторон для 1.4.3",
     [UI_MENU_OUTPUT_RES] = "Разрешение игры",
     [UI_MENU_OUTPUT_RES_DESC] = "Размер, в котором игра рисует картинку и интерфейс. Выше 1920 × 1080 игре нужно больше "
                                 "видеопамяти и времени GPU.",
